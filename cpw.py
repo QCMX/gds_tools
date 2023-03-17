@@ -277,9 +277,10 @@ class GridPath:
             lstart: float = 0,
             lend: float = 0):
         lm = length - lstart - lend
-        assert (Nturn-1)*radius < lm, "Radius or Nturn too large for given length."
-        llong = (lm + 2*radius) / (Nturn + 1)
-        lshort = llong - radius
+        assert (2*Nturn-2+(Nturn+1)*np.pi)*radius < lm, \
+            "Radius or Nturn too large for given length."
+        llong = (lm + 2*radius - (Nturn+1)*np.pi*radius) / Nturn
+        lshort = llong/2 - radius
 
         angle = self.get_angle()
         straight = np.array([np.cos(angle), np.sin(angle)])
