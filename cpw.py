@@ -1,63 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from typing import Iterable, Callable
+from typing import Iterable
 import numpy as np
 from numpy import pi
 import gdspy
-from gdspy import Rectangle, Polygon, PolygonSet
+from gdspy import Rectangle, Polygon
 
-
-def remove_polygons_recursive(
-        cell,
-        layer: int | Iterable | None = None,
-        test: Callable[[np.array, int, int], bool] | None = None):
-    if layer is not None:
-        assert test is None, "Supply either layer or test, not both"
-        if hasattr(layer, '__iter__'): layers = list(layer)
-        else: layers = [layer]
-        test = lambda points, layer, datatype: layer in layers
-    elif test is not None:
-        assert layer is None, "Supply either layer or test, not both"
-    else:
-        raise ValueError("Supply either layer or test argument.")
-
-    # this is a set, so no double-counting of cells referenced multiple times
-    cells = cell.get_dependencies(recursive=True)
-    cells.add(cell)
-    for cell in cells:
-        cell.remove_polygons(test)
-
-    return cell
-
-
-# Dosn't work: PolygonSet supports only all points on same layer.
-# Otherwise results look weird.
-def primitives_to_polygonset(objs: Iterable):
-    polygons = []
-    layers = []
-    for obj in objs:
-        if hasattr(obj, 'to_polygonset'):
-            pset = obj.to_polygonset()
-            polygons.extend(pset.polygons)
-            layers.extend(pset.layers)
-        elif hasattr(obj, 'to_polygonsets'):
-            for pset in obj.to_polygonsets():
-                polygons.extend(pset.polygons)
-                layers.extend(pset.layers)
-        elif isinstance(obj, PolygonSet):
-            polygons.extend(obj.polygons)
-            layers.extend(obj.layers)
-        elif isinstance(obj, Rectangle):
-            (x1, y1), (x2, y2) = obj.point1, obj.point2
-            polygons.append(np.array([
-                (x1, y1), (x2, y1), (x2, y2), (x1, y2)]))
-            layers.append(obj.layer)
-        else:
-            raise ValueError("Objects {repr(obj)} not supported yet.")
-    assert len(polygons) == len(layers)
-    pset = PolygonSet(polygons)
-    pset.layers = layers # hack
-    return pset
+from .tools import primitives_to_polygonset
 
 
 def cpw(length: float , width: float, ctr: float, avoidance: float,
@@ -268,6 +217,19 @@ class GridPath:
         initial_angle = self.get_angle() + (pi/2 if angle < 0 else -pi/2)
         return self.arc(radius, initial_angle, initial_angle + angle,
                         width, offset, spacingmode)
+    
+
+    # def straight(self, length: float, width = None, offset = None,
+    #              gridoffset: float | Iterable = None):
+    #     if self.path.points.shape[0] < 2:
+    #         raise ValueError(
+    #             "[GDSPY] Cannot define initial angle for turn on a "
+    #             "FlexPath withouth previous segments."
+    #         )
+    #     v = self.path.points[-1] - self.path.points[-2]
+    #     angle = np.arctan2(v[1], v[0])
+    #     endpoint = self.path.points[-1] + length * np.array([np.cos(angle), np.sin(angle)])
+    #     self.segment(endpoint, width, offset, gridoffset, relative=True)
 
 
     def meander(self,
@@ -396,3 +358,18 @@ class CPWPath(GridPath):
         self.ctr = ctr
 
         return super().segment(end_point, fpwidth, fpoffset, gridoffset, relative)
+
+    # # Doesn't work, because turns are not exact at the end,
+    # # due to sampling of the curve. Has errors up to 20 degrees.
+    # def straight(self, length: float,
+    #              total_width: float = None, ctr: float = None):
+    #     if self.path.points.shape[0] < 2:
+    #         raise ValueError(
+    #             "Cannot define initial angle for turn on a "
+    #             "path withouth previous segments."
+    #         )
+    #     v = self.path.points[-1] - self.path.points[-2]
+    #     angle = np.arctan2(v[1], v[0])
+    #     endpoint = self.path.points[-1] + length * np.array([np.cos(angle), np.sin(angle)])
+    #     print(angle, self.path.points[-1], np.array([np.cos(angle), np.sin(angle)]), endpoint)
+    #     self.segment(endpoint, total_width, ctr, relative=True)
