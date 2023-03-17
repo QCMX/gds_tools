@@ -167,6 +167,15 @@ class GridPath:
         self.total_len = 0
 
 
+    def get_angle(self):
+        if self.path.points.shape[0] < 2:
+            raise ValueError(
+                "Cannot define angle on a "
+                "path withouth previous segments.")
+        v = self.path.points[-1] - self.path.points[-2]
+        return np.arctan2(v[1], v[0])
+
+
     def segment(self, end_point, width = None, offset = None,
                 gridoffset: float | Iterable = None,
                 #gridspacing: Iterable = None,
@@ -255,17 +264,49 @@ class GridPath:
     def turn(self, radius, angle, width=None, offset=None, spacingmode='dist'):
         """Like gdspy.FlexPath.turn() with additional argument `spacingmode`
         like in GridCPW.arc()."""
-        self._polygon_dict = None
-        if self.path.points.shape[0] < 2:
-            raise ValueError(
-                "[GDSPY] Cannot define initial angle for turn on a "
-                "FlexPath withouth previous segments."
-            )
-        v = self.path.points[-1] - self.path.points[-2]
         angle = gdspy.path._angle_dict.get(angle, angle)
-        initial_angle = np.arctan2(v[1], v[0]) + (pi/2 if angle < 0 else -pi/2)
+        initial_angle = self.get_angle() + (pi/2 if angle < 0 else -pi/2)
         return self.arc(radius, initial_angle, initial_angle + angle,
                         width, offset, spacingmode)
+
+
+    def meander(self,
+            length: float, # total length
+            Nturn: int, # number of 180 turns
+            radius: float, # turn radius
+            lstart: float = 0,
+            lend: float = 0):
+        lm = length - lstart - lend
+        assert (Nturn-1)*radius < lm, "Radius or Nturn too large for given length."
+        llong = (lm + 2*radius) / (Nturn + 1)
+        lshort = llong - radius
+
+        angle = self.get_angle()
+        straight = np.array([np.cos(angle), np.sin(angle)])
+        perpendicular = np.array([-straight[1], straight[0]])
+
+        if lstart != 0:
+            self.segment(lstart*straight, relative=True)
+        self.turn(radius, 'l')
+        self.segment(lshort*perpendicular, relative=True)
+        for i in range(Nturn-1):
+            if i%2 == 0:
+                self.turn(radius, 'rr')
+                self.segment(-llong*perpendicular, relative=True)
+            else:
+                self.turn(radius, 'll')
+                self.segment(llong*perpendicular, relative=True)
+        if Nturn%2 == 1:
+            self.turn(radius, 'rr')
+            self.segment(-lshort*perpendicular, relative=True)
+            self.turn(radius, 'l')
+        else:
+            self.turn(radius, 'll')
+            self.segment(lshort*perpendicular, relative=True)
+            self.turn(radius, 'r')
+        if lend != 0:
+            self.segment(lend*straight, relative=True)
+        return self
 
 
     def objects(self):
@@ -309,7 +350,7 @@ class CPWPath(GridPath):
         gridobj = Rectangle((-antidotsize/2, -antidotsize/2), (antidotsize/2, antidotsize/2),
                             layer=layer_antidots)
         super().__init__(fp, gridoffset, antidotspacing, gridobj)
-    
+
     @staticmethod
     def _calc_sizes(total_width, ctr, avoidance,
                     antidotsize, antidotspacing,
