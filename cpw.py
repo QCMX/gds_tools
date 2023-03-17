@@ -202,7 +202,7 @@ class GridPath:
             angle = np.arctan2(v[1], v[0])
             d = _norm(v)
             t = spacing - self.gridlines_pos[i] % spacing
-            while t <= d:
+            while t <= d or np.isclose(t, d):
                 obj = gdspy.copy(self.gridobj).rotate(angle)
                 obj = obj.translate(*(start + v * t/d))
                 self.gridlines.append(obj)
@@ -246,7 +246,7 @@ class GridPath:
 
             t = s - self.gridlines_pos[i] % s
             center = begin_point - radius * np.array([np.cos(initial_angle), np.sin(initial_angle)])
-            while t <= d:
+            while t <= d or np.isclose(t, d):
                 angle = initial_angle + totalangle * t / d
                 obj = gdspy.copy(self.gridobj).rotate(
                     angle + (pi/2 if totalangle >= 0 else -pi/2))
