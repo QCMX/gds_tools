@@ -271,12 +271,16 @@ class GridPath:
 
 
     def meander(self,
-            length: float, # total length
+            length: float, # total meander length
             Nturn: int, # number of 180 turns
             radius: float, # turn radius
-            lstart: float = 0,
-            lend: float = 0):
-        lm = length - lstart - lend
+            ldirect: float = 0): # distance between start and end point
+        lstart = lend = 0
+        if ldirect != 0:
+            lstart = lend = (ldirect - 2*(Nturn+1)*radius) / 2
+            assert lstart > 0, "ldirect too short for given radius and Nturn."
+
+        lm = length - lstart - lend  # actual meander length
         assert (2*Nturn-2+(Nturn+1)*np.pi)*radius < lm, \
             "Radius or Nturn too large for given length."
         llong = (lm + 2*radius - (Nturn+1)*np.pi*radius) / Nturn
