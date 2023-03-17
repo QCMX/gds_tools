@@ -342,15 +342,15 @@ class CPWPath(GridPath):
         self.antidotspacing = antidotspacing
         self.innerantidotrows = innerantidotrows
         self.outerantidotrows = outerantidotrows
-        
+
         fpwidth, fpoffset, gridoffset = CPWPath._calc_sizes(
             total_width, ctr, avoidance, antidotsize, antidotspacing,
             innerantidotrows, outerantidotrows)
 
         fp = gdspy.FlexPath(
             start_points, width=fpwidth, offset=fpoffset,
-            ends=[(0, 0), (0, 0), (avoidance, avoidance), (antidotsize/2, antidotsize/2)],
-            layer=[layer_gap, layer_gap, layer_avoidance, layer_antidotbound])
+            ends=[(0, 0), (0, 0), (avoidance, avoidance), (avoidance, avoidance), (antidotsize/2, antidotsize/2)],
+            layer=[layer_gap, layer_gap, layer_avoidance, layer_avoidance, layer_antidotbound])
 
         gridobj = Rectangle((-antidotsize/2, -antidotsize/2), (antidotsize/2, antidotsize/2),
                             layer=layer_antidots)
@@ -363,9 +363,9 @@ class CPWPath(GridPath):
         gap = (total_width - ctr * total_width) / 2
         gapoffset = (ctr * total_width / 2) + gap/2
         fpwidth = [
-            gap, gap, total_width+2*avoidance,
+            gap, gap, gap+2*avoidance, gap+2*avoidance,
             total_width+2*(avoidance+antidotspacing*max((outerantidotrows-1), 0)+antidotsize*1.5)]
-        fpoffset = [-gapoffset, gapoffset, 0, 0]
+        fpoffset = [-gapoffset, gapoffset, -gapoffset, +gapoffset, 0]
 
         gridoffset = np.concatenate(
             [[
@@ -373,8 +373,8 @@ class CPWPath(GridPath):
                 +total_width/2 + avoidance+antidotsize/2 + i*antidotspacing,
             ] for i in range(outerantidotrows)]
             + [[
-                -total_width*ctr/2 + avoidance + i*antidotspacing,
-                +total_width*ctr/2 - avoidance - i*antidotspacing,
+                -total_width*ctr/2 + avoidance+antidotsize/2 + i*antidotspacing,
+                +total_width*ctr/2 - avoidance-antidotsize/2 - i*antidotspacing,
             ]  for i in range(innerantidotrows)]) if antidotsize else []
 
         return fpwidth, fpoffset, gridoffset
