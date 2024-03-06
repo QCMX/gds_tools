@@ -305,6 +305,9 @@ class CPWPath(GridPath):
         self.innerantidotrows = innerantidotrows
         self.outerantidotrows = outerantidotrows
 
+        assert len(start_points) == 1, "CPWPath can only start with a single point."
+        assert len(start_points[0]) == 2, "First points needs to be x,y tuple"
+
         fpwidth, fpoffset, gridoffset = CPWPath._calc_sizes(
             total_width, ctr, avoidance, antidotsize, antidotspacing,
             innerantidotrows, outerantidotrows)
