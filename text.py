@@ -8,13 +8,24 @@ import gdspy
 # Note: list available font names with
 #     sorted(matplotlib.font_manager.get_font_names())
 
+def any_text(text, width=100, **polyprops):
+    """Render text and scale to given width in um.
+
+    Returns a PolygonSet
+    """
+    fp = FontProperties(fname="./gds_tools/Shrikhand-Regular.ttf")
+    poly = gdspy.PolygonSet(render_text(text, 10, font_prop=fp), **polyprops)
+    bbox = poly.get_bounding_box()
+    w, h = bbox[1] - bbox[0]
+    return poly.scale(width/w)
+
 
 def qcmx_logo(width=100, **polyprops):
     """Render QCMX logo and scale to given width in um.
 
     Returns a PolygonSet
     """
-    fp = FontProperties(fname="Shrikhand-Regular.ttf")
+    fp = FontProperties(fname="./gds_tools/Shrikhand-Regular.ttf")
     poly = gdspy.PolygonSet(render_text("QCMX", 10, font_prop=fp), **polyprops)
     bbox = poly.get_bounding_box()
     w, h = bbox[1] - bbox[0]
